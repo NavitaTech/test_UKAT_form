@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UKAT Test Registration</title>
+<style>
+  :root{
+    --navy:#0f1f3d;
+    --navy-deep:#0a1730;
+    --orange:#e07a2c;
+    --paper:#f6f5f1;
+    --ink:#1c2333;
+    --line:#d9d6cc;
+    --ok:#2f7a4f;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',Arial,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:32px 16px;
+  }
+  .card{
+    width:100%;
+    max-width:560px;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  .card-head{
+    background:var(--navy);
+    background-image:linear-gradient(135deg,var(--navy),var(--navy-deep));
+    color:#fff;
+    padding:24px 28px;
+    border-top:4px solid var(--orange);
+  }
+  .card-head h1{margin:0 0 4px;font-size:1.35rem;font-weight:600;}
+  .card-head p{margin:0;font-size:.85rem;color:#c9d2e8;}
+  form{padding:28px;}
+  .field{margin-bottom:18px;}
+  label{
+    display:block;
+    font-size:.8rem;
+    font-weight:600;
+    letter-spacing:.02em;
+    text-transform:uppercase;
+    color:#5a6172;
+    margin-bottom:6px;
+  }
+  input,select{
+    width:100%;
+    padding:11px 12px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    font-size:.95rem;
+    font-family:inherit;
+    color:var(--ink);
+    background:#fff;
+  }
+  input:focus,select:focus{
+    outline:none;
+    border-color:var(--orange);
+    box-shadow:0 0 0 3px rgba(224,122,44,.15);
+  }
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  button{
+    width:100%;
+    padding:13px;
+    margin-top:6px;
+    background:var(--orange);
+    color:#fff;
+    border:none;
+    border-radius:4px;
+    font-size:.95rem;
+    font-weight:600;
+    cursor:pointer;
+  }
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.6;cursor:default;}
+  .status{
+    margin-top:14px;
+    font-size:.88rem;
+    text-align:center;
+    display:none;
+  }
+  .status.show{display:block;}
+  .status.success{color:var(--ok);}
+  .status.error{color:#b23b3b;}
+  .setup-note{
+    background:#fff8ec;
+    border:1px solid #f0d9ab;
+    color:#7a5a10;
+    font-size:.78rem;
+    padding:10px 14px;
+    margin:0 28px 18px;
+    border-radius:4px;
+    line-height:1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="card-head">
+    <h1>UKAT Test Registration</h1>
+    <p>Counselor intake — complete before the student begins the test</p>
+  </div>
+
+  <!-- تنبيه للمسؤول: لازم يحط رابط الـ Apps Script Web App قبل ما يشتغل الفورم فعلياً -->
+  <div class="setup-note" id="setupNote">
+    Setup needed: open this file's source and replace <code>APPS_SCRIPT_URL</code> with your
+    deployed Apps Script Web App URL (see instructions provided separately). This banner
+    disappears once <code>APPS_SCRIPT_URL</code> is filled in.
+  </div>
+
+  <form id="registrationForm">
+    <div class="field">
+      <label for="fullName">Full Name</label>
+      <input type="text" id="fullName" name="fullName" required>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+      <div class="field">
+        <label for="phone">Phone</label>
+        <input type="tel" id="phone" name="phone" pattern="[4569][0-9]{7}" maxlength="8" inputmode="numeric" placeholder="e.g. 51234567" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="passportId">Passport / ID Number</label>
+      <input type="text" id="passportId" name="passportId" required>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="testDate">Test Date</label>
+        <input type="date" id="testDate" name="testDate" required>
+      </div>
+      <div class="field">
+        <label for="testTime">Test Time</label>
+        <select id="testTime" name="testTime" required>
+          <option value="" disabled selected>Select a time</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="device">Assigned Device</label>
+      <select id="device" name="device" required>
+        <option value="" disabled selected>Select a device</option>
+        <option value="Laptop 1">Laptop 1</option>
+        <option value="Laptop 2">Laptop 2</option>
+      </select>
+    </div>
+
+    <button type="submit" id="submitButton">Register Student</button>
+    <p class="status" id="statusMessage"></p>
+  </form>
+</div>
+
+<script>
+  // خله فاضي "APPS_SCRIPT_URL" لين تحصل رابط الـ Web App بعد ما تنشر الـ Apps Script
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyeB8vulgYmmWdkTP4SvqK6DzXse5Y2db3ce0Yeu2T3uukSlmBMi4kXpP_rGbNSA8kT/exec";
+
+  function collectFormValues() {
+    const values = {};
+    ["fullName", "email", "phone", "passportId", "testDate", "testTime", "device"].forEach((fieldName) => {
+      values[fieldName] = document.getElementById(fieldName).value;
+    });
+    return values;
+  }
+
+  function formatTimeLabel(hour24, minute) {
+    // نحول الوقت لصيغة 12 ساعة عشان يكون أوضح للمستخدم
+    const period = hour24 < 12 ? "AM" : "PM";
+    const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+    const paddedMinute = minute.toString().padStart(2, "0");
+    return `${hour12}:${paddedMinute} ${period}`;
+  }
+
+  function buildAllowedTimeSlots() {
+    // نولد الأوقات المسموحة بس من 8:30 الصبح لين 5:30 العصر، كل نص ساعة
+    const slots = [];
+    for (let hour = 8; hour <= 17; hour++) {
+      for (const minute of [0, 30]) {
+        if (hour === 8 && minute === 0) continue;
+        if (hour === 17 && minute === 30) {
+          slots.push({ hour, minute });
+          break;
+        }
+        slots.push({ hour, minute });
+      }
+    }
+    return slots;
+  }
+
+  function populateTestTimeDropdown() {
+    const dropdown = document.getElementById("testTime");
+    buildAllowedTimeSlots().forEach(({ hour, minute }) => {
+      const option = document.createElement("option");
+      option.value = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+      option.textContent = formatTimeLabel(hour, minute);
+      dropdown.appendChild(option);
+    });
+  }
+
+  function isFullNameValid(fullName) {
+    // الاسم لازم يكون كلمتين أو أكثر (اسم أول واسم ثاني على الأقل)
+    const nameWords = fullName.trim().split(/\s+/).filter(Boolean);
+    return nameWords.length >= 2;
+  }
+
+  function isPhoneNumberValid(phoneNumber) {
+    // الرقم لازم يكون 8 أرقام ويبدأ بـ 4 أو 5 أو 6 أو 9
+    return /^[4569][0-9]{7}$/.test(phoneNumber);
+  }
+
+  function isTestTimeWithinAllowedWindow(testTime) {
+    // وقت الاختبار المسموح بس من 8:30 الصبح لين 5:30 العصر
+    return testTime >= "08:30" && testTime <= "17:30";
+  }
+
+  function showStatusMessage(message, isSuccess) {
+    const statusEl = document.getElementById("statusMessage");
+    statusEl.textContent = message;
+    statusEl.className = "status show " + (isSuccess ? "success" : "error");
+  }
+
+  function resetFormAfterSuccess(formEl) {
+    formEl.reset();
+  }
+
+  function submitRegistrationToSheet(values) {
+    // نرسل بيانات الطالب مباشرة للـ Apps Script اللي يكتبها بالشيت
+    // نستخدم text/plain عشان نتفادى مشكلة الـ CORS preflight مع Apps Script
+    return fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(values)
+    });
+  }
+
+  function validateRegistrationForm(values) {
+    // فحص نقي بس، ما يسوي أي تعديل أو إرسال — يرجع رسالة الخطأ أو null إذا تمام
+    if (!isFullNameValid(values.fullName)) {
+      return "Full name must include at least 2 names.";
+    }
+    if (!isPhoneNumberValid(values.phone)) {
+      return "Phone number must be 8 digits and start with 4, 5, 6, or 9.";
+    }
+    if (!isTestTimeWithinAllowedWindow(values.testTime)) {
+      return "Test time must be between 8:30 AM and 5:30 PM.";
+    }
+    return null;
+  }
+
+  function handleSuccessfulSubmission(formEl, submitButton) {
+    // هذا يسوي أفعال جانبية بس (فيدباك + تصفير الفورم)
+    showStatusMessage("Student registered successfully.", true);
+    resetFormAfterSuccess(formEl);
+    submitButton.disabled = false;
+  }
+
+  function handleFailedSubmission(submitButton) {
+    // هذا يسوي أفعال جانبية بس (فيدباك خطأ + نرجع نفعل الزر)
+    showStatusMessage("Something went wrong sending the data. Please try again.", false);
+    submitButton.disabled = false;
+  }
+
+  document.getElementById("registrationForm").addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    if (!APPS_SCRIPT_URL) {
+      showStatusMessage("Setup incomplete: add your Apps Script Web App URL first.", false);
+      return;
+    }
+
+    const values = collectFormValues();
+    const validationError = validateRegistrationForm(values);
+    if (validationError) {
+      showStatusMessage(validationError, false);
+      return;
+    }
+
+    const submitButton = document.getElementById("submitButton");
+    const formEl = this;
+    submitButton.disabled = true;
+
+    submitRegistrationToSheet(values)
+      .then(() => handleSuccessfulSubmission(formEl, submitButton))
+      .catch(() => handleFailedSubmission(submitButton));
+  });
+
+  populateTestTimeDropdown();
+
+  if (APPS_SCRIPT_URL) {
+    document.getElementById("setupNote").style.display = "none";
+  }
+</script>
+
+</body>
+</html>
