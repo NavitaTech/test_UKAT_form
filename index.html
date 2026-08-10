@@ -1,9 +1,10 @@
 <!DOCTYPE html>
+<!-- Done by: Eng. Mohammed Mahmoud "Triple M" -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UKAT Test Registration</title>
+<title>Mock Exam Registration</title>
 <style>
   :root{
     --navy:#0f1f3d;
@@ -109,8 +110,8 @@
 
 <div class="card">
   <div class="card-head">
-    <h1>UKAT Test Registration</h1>
-    <p>Counselor intake — complete before the student begins the test</p>
+    <h1>Mock Exam Registration</h1>
+    <p>Counselor intake — complete before the student begins the exam</p>
   </div>
 
   <!-- تنبيه للمسؤول: لازم يحط رابط الـ Apps Script Web App قبل ما يشتغل الفورم فعلياً -->
@@ -121,6 +122,16 @@
   </div>
 
   <form id="registrationForm">
+    <div class="field">
+      <label for="examType">Exam Type</label>
+      <select id="examType" name="examType" required>
+        <option value="" disabled selected>Select an exam</option>
+        <option value="ELITS Mock Exam">ELITS Mock Exam</option>
+        <option value="Placement Team Mock Exam">Placement Team Mock Exam</option>
+        <option value="UKAT Mock Exam">UKAT Mock Exam</option>
+      </select>
+    </div>
+
     <div class="field">
       <label for="fullName">Full Name</label>
       <input type="text" id="fullName" name="fullName" required>
@@ -175,7 +186,7 @@
 
   function collectFormValues() {
     const values = {};
-    ["fullName", "email", "phone", "passportId", "testDate", "testTime", "device"].forEach((fieldName) => {
+    ["examType", "fullName", "email", "phone", "passportId", "testDate", "testTime", "device"].forEach((fieldName) => {
       values[fieldName] = document.getElementById(fieldName).value;
     });
     return values;
@@ -190,17 +201,10 @@
   }
 
   function buildAllowedTimeSlots() {
-    // نولد الأوقات المسموحة بس من 8:30 الصبح لين 5:30 العصر، كل نص ساعة
+    // نولد الأوقات المسموحة بس من 8:30 الصبح لين 5:30 العصر، كل ساعة كاملة
     const slots = [];
     for (let hour = 8; hour <= 17; hour++) {
-      for (const minute of [0, 30]) {
-        if (hour === 8 && minute === 0) continue;
-        if (hour === 17 && minute === 30) {
-          slots.push({ hour, minute });
-          break;
-        }
-        slots.push({ hour, minute });
-      }
+      slots.push({ hour, minute: 30 });
     }
     return slots;
   }
@@ -212,6 +216,17 @@
       option.value = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
       option.textContent = formatTimeLabel(hour, minute);
       dropdown.appendChild(option);
+    });
+  }
+
+  function stripNonDigitCharacters(rawValue) {
+    // نمسح أي شي مو رقم عشان المستخدم ما يقدر يكتب حروف أو رموز بخانة الجوال
+    return rawValue.replace(/[^0-9]/g, "");
+  }
+
+  function preventNonDigitInput(inputEl) {
+    inputEl.addEventListener("input", () => {
+      inputEl.value = stripNonDigitCharacters(inputEl.value);
     });
   }
 
@@ -304,6 +319,7 @@
   });
 
   populateTestTimeDropdown();
+  preventNonDigitInput(document.getElementById("phone"));
 
   if (APPS_SCRIPT_URL) {
     document.getElementById("setupNote").style.display = "none";
