@@ -128,7 +128,7 @@
         <option value="" disabled selected>Select an exam</option>
         <option value="ELITS Mock Exam">ELITS Mock Exam</option>
         <option value="Placement Team Mock Exam">Placement Team Mock Exam</option>
-        <option value="UKAT Mock Exam">UKAT Mock Exam</option>
+        <option value="UCAT Mock Exam">UCAT Mock Exam</option>
       </select>
     </div>
 
@@ -149,8 +149,8 @@
     </div>
 
     <div class="field">
-      <label for="passportId">Passport / ID Number</label>
-      <input type="text" id="passportId" name="passportId" required>
+      <label for="counselorName">Counselor Name</label>
+      <input type="text" id="counselorName" name="counselorName" required>
     </div>
 
     <div class="row">
@@ -186,7 +186,7 @@
 
   function collectFormValues() {
     const values = {};
-    ["examType", "fullName", "email", "phone", "passportId", "testDate", "testTime", "device"].forEach((fieldName) => {
+    ["examType", "fullName", "email", "phone", "counselorName", "testDate", "testTime", "device"].forEach((fieldName) => {
       values[fieldName] = document.getElementById(fieldName).value;
     });
     return values;
@@ -230,6 +230,19 @@
     });
   }
 
+  function buildTodayDateString() {
+    // نبني تاريخ اليوم بصيغة YYYY-MM-DD حسب توقيت الجهاز المحلي
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, "0");
+    const day = now.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function preventPastDateSelection(dateInputEl) {
+    dateInputEl.min = buildTodayDateString();
+  }
+
   function isFullNameValid(fullName) {
     // الاسم لازم يكون كلمتين أو أكثر (اسم أول واسم ثاني على الأقل)
     const nameWords = fullName.trim().split(/\s+/).filter(Boolean);
@@ -239,6 +252,14 @@
   function isPhoneNumberValid(phoneNumber) {
     // الرقم لازم يكون 8 أرقام ويبدأ بـ 4 أو 5 أو 6 أو 9
     return /^[4569][0-9]{7}$/.test(phoneNumber);
+  }
+
+  function isTestDateTimeInFuture(testDate, testTime) {
+    // نتأكد إن التاريخ والوقت المختارين ما فاتوا لين هالحظة
+    const [year, month, day] = testDate.split("-").map(Number);
+    const [hour, minute] = testTime.split(":").map(Number);
+    const chosenDateTime = new Date(year, month - 1, day, hour, minute);
+    return chosenDateTime > new Date();
   }
 
   function isTestTimeWithinAllowedWindow(testTime) {
@@ -277,6 +298,9 @@
     }
     if (!isTestTimeWithinAllowedWindow(values.testTime)) {
       return "Test time must be between 8:30 AM and 5:30 PM.";
+    }
+    if (!isTestDateTimeInFuture(values.testDate, values.testTime)) {
+      return "You can't book a date/time that has already passed.";
     }
     return null;
   }
@@ -319,6 +343,7 @@
   });
 
   populateTestTimeDropdown();
+  preventPastDateSelection(document.getElementById("testDate"));
   preventNonDigitInput(document.getElementById("phone"));
 
   if (APPS_SCRIPT_URL) {
